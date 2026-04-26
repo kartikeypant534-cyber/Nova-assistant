@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nova">
+<meta name="theme-color" content="#0a0a0f">
+<title>Nova Assistant</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════════════════════════
+   ROOT TOKENS
+══════════════════════════════════════════════ */
+:root {
+  --bg:       #0a0a0f;
+  --s1:       #111118;
+  --s2:       #18181f;
+  --s3:       #22222c;
+  --acc:      #6c63ff;
+  --acc2:     #a78bfa;
+  --acc3:     #38bdf8;
+  --rose:     #f472b6;
+  --amber:    #fbbf24;
+  --green:    #34d399;
+  --red:      #f87171;
+  --t1:       #f0eeff;
+  --t2:       #9d9ab8;
+  --t3:       #5a5875;
+  --border:   rgba(108,99,255,.15);
+  --glow:     0 0 40px rgba(108,99,255,.2);
+  --fh:       'Syne', sans-serif;
+  --fb:       'DM Sans', sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+
+/* ═══════════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); }
+body {
+  font-family: var(--fb);
+  color: var(--t1);
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bot);
+}
+
+/* ═══════════════════════════════════════════
+   SCROLLBAR
+══════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 0; }
+
+/* ═══════════════════════════════════════════
+   INSTALL BANNER
+══════════════════════════════════════════════ */
+#installBanner {
+  display: none;
+  position: fixed;
+  bottom: calc(var(--safe-bot) + 80px);
+  left: 16px; right: 16px;
+  background: linear-gradient(135deg, #1a1830, #221f3a);
+  border: 1px solid var(--acc);
+  border-radius: 18px;
+  padding: 16px 18px;
+  z-index: 9999;
+  box-shadow: 0 8px 32px rgba(108,99,255,.4);
+  animation: slideUp .4s ease;
+}
+#installBanner.show { display: flex; align-items: center; gap: 12px; }
+.install-icon { font-size: 28px; flex-shrink: 0; }
+.install-text { flex: 1; }
+.install-text strong { font-family: var(--fh); font-size: 15px; display: block; }
+.install-text span { font-size: 12px; color: var(--t2); }
+.install-btn {
+  background: var(--acc);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-family: var(--fb);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.install-close { color: var(--t3); font-size: 20px; cursor: pointer; flex-shrink: 0; padding: 4px; }
+
+/* ═══════════════════════════════════════════
+   PERMISSION OVERLAY
+══════════════════════════════════════════════ */
+#permOverlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 8888;
+  background: rgba(0,0,0,.8);
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 16px calc(var(--safe-bot) + 20px);
+}
+#permOverlay.show { display: flex; }
+.perm-sheet {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  padding: 28px 24px 24px;
+  width: 100%;
+  max-width: 420px;
+  animation: slideUp .35s cubic-bezier(.16,1,.3,1);
+}
+.perm-sheet-icon { font-size: 44px; margin-bottom: 14px; display: block; }
+.perm-sheet-title { font-family: var(--fh); font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+.perm-sheet-desc { font-size: 14px; color: var(--t2); line-height: 1.7; margin-bottom: 22px; }
+.perm-sheet-btns { display: flex; gap: 10px; }
+.btn-deny  { flex:1; padding:14px; border-radius:14px; background:var(--s3); border:1px solid var(--border); color:var(--t2); font-size:14px; font-family:var(--fb); cursor:pointer; }
+.btn-allow { flex:1.5; padding:14px; border-radius:14px; background:var(--acc); border:none; color:white; font-size:14px; font-weight:600; font-family:var(--fh); cursor:pointer; box-shadow:0 4px 20px rgba(108,99,255,.4); }
+
+/* ═══════════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════════════ */
+#app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ═══════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════════ */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px 10px;
+  flex-shrink: 0;
+}
+.logo { font-family: var(--fh); font-size: 22px; font-weight: 800; letter-spacing: -0.5px;
+  background: linear-gradient(120deg,var(--t1),var(--acc2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.header-btns { display:flex; gap:8px; }
+.icon-btn { width:38px; height:38px; border-radius:50%; background:var(--s2); border:1px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:17px; transition:all .2s; }
+.icon-btn:active { transform:scale(.92); background:var(--s3); }
+
+/* ═══════════════════════════════════════════
+   SCREENS
+══════════════════════════════════════════════ */
+.screen { display:none; flex:1; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; }
+.screen.active { display:flex; flex-direction:column; }
+
+/* ═══════════════════════════════════════════
+   HOME SCREEN
+══════════════════════════════════════════════ */
+#homeScreen { padding: 0 20px 20px; gap: 18px; }
+
+/* Orb */
+.orb-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 10px;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.orb-stage {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  animation: orbBreath 3s ease-in-out infinite;
+}
+.ring-1 { inset:0; }
+.ring-2 { inset:16px; border-color:rgba(167,139,250,.12); animation-delay:.6s; }
+.ring-3 { inset:32px; border-color:rgba(56,189,248,.1); animation-delay:1.2s; }
+.orb-glow {
+  position: absolute;
+  inset: 40px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(167,139,250,.3), rgba(108,99,255,.1) 60%, transparent);
+  animation: orbBreath 3s ease-in-out infinite;
+  pointer-events: none;
+}
+.orb-core {
+  position: absolute;
+  inset: 40px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 32%, #a78bfa, #6c63ff 55%, #3730a3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+  box-shadow: 0 0 50px rgba(108,99,255,.5), inset 0 1px 0 rgba(255,255,255,.2);
+  transition: transform .15s, box-shadow .15s;
+}
+.orb-stage:active .orb-core { transform:scale(.93); box-shadow:0 0 30px rgba(108,99,255,.3); }
+.orb-stage.listening .orb-core { background: radial-gradient(circle at 32% 32%, #f472b6, #f87171 55%, #b91c1c); box-shadow:0 0 50px rgba(248,113,113,.5); }
+.orb-stage.thinking .ring-1 { border-color:rgba(251,191,36,.3); animation: orbSpin 1.5s linear infinite; }
+
+.orb-label { font-size:13px; color:var(--t2); letter-spacing:.3px; }
+.status-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--green); margin-right:6px; animation:blink 2s ease-in-out infinite; }
+.status-dot.red { background:var(--red); animation:none; }
+.status-dot.amber { background:var(--amber); animation:orbBreath 1s ease-in-out infinite; }
+
+/* Wave bars */
+.wave-bars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 32px;
+  opacity: 0;
+  transition: opacity .3s;
+}
+.wave-bars.active { opacity: 1; }
+.wave-bar {
+  width: 4px;
+  border-radius: 2px;
+  background: var(--acc2);
+  animation: waveDance .7s ease-in-out infinite alternate;
+  transform-origin: bottom;
+}
+.wave-bar:nth-child(1){ height:10px; animation-delay:0s; }
+.wave-bar:nth-child(2){ height:20px; animation-delay:.1s; background:var(--acc); }
+.wave-bar:nth-child(3){ height:28px; animation-delay:.05s; }
+.wave-bar:nth-child(4){ height:22px; animation-delay:.15s; background:var(--acc3); }
+.wave-bar:nth-child(5){ height:16px; animation-delay:.08s; }
+.wave-bar:nth-child(6){ height:24px; animation-delay:.12s; background:var(--acc); }
+.wave-bar:nth-child(7){ height:12px; animation-delay:.04s; }
+
+/* Response bubble */
+.bubble {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 20px 20px 20px 6px;
+  padding: 16px 18px;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--t1);
+  position: relative;
+  flex-shrink: 0;
+}
+.bubble::before {
+  content: '✦ Nova';
+  display: block;
+  font-family: var(--fh);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--acc2);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+.thinking-dots { display:inline-flex; gap:5px; align-items:center; }
+.thinking-dots span { width:7px;height:7px;border-radius:50%;background:var(--acc2);animation:thinkDot 1.2s ease-in-out infinite; }
+.thinking-dots span:nth-child(2){animation-delay:.2s;}
+.thinking-dots span:nth-child(3){animation-delay:.4s;}
+
+/* Section label */
+.sec-label { font-family:var(--fh); font-size:10px; font-weight:700; letter-spacing:1.4px; color:var(--t3); text-transform:uppercase; flex-shrink:0; }
+
+/* Quick action cards */
+.quick-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; flex-shrink:0; }
+.q-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px 13px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  cursor: pointer;
+  transition: all .18s;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.q-card:active { transform:scale(.96); background:var(--s2); border-color:var(--acc); }
+.q-icon { width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0; }
+.q-icon.purple{ background:rgba(108,99,255,.18); }
+.q-icon.teal  { background:rgba(56,189,248,.15); }
+.q-icon.amber { background:rgba(251,191,36,.15); }
+.q-icon.rose  { background:rgba(244,114,182,.15); }
+.q-title { font-family:var(--fh); font-size:13px; font-weight:600; color:var(--t1); }
+.q-sub   { font-size:11px; color:var(--t3); margin-top:1px; }
+
+/* App launcher */
+.app-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; flex-shrink:0; padding-bottom:8px; }
+.app-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 4px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all .18s;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.app-cell:active { background:var(--s2); transform:scale(.93); }
+.app-cell-icon { width:54px;height:54px;border-radius:15px;background:var(--s2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:26px; position:relative; }
+.app-cell-badge { position:absolute;top:-4px;right:-4px;width:17px;height:17px;border-radius:50%;background:var(--green);border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:9px;color:white;font-weight:700; }
+.app-cell-name { font-size:10.5px;color:var(--t2);text-align:center;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+
+/* ═══════════════════════════════════════════
+   HISTORY SCREEN
+══════════════════════════════════════════════ */
+#historyScreen { padding:16px 20px; gap:10px; }
+.hist-card {
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:14px 16px;
+  cursor:pointer;
+  transition:all .18s;
+  flex-shrink:0;
+}
+.hist-card:active{ background:var(--s2); }
+.hist-top{ display:flex;justify-content:space-between;align-items:center;margin-bottom:7px; }
+.hist-intent{ font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--acc2);text-transform:uppercase; }
+.hist-time{ font-size:11px;color:var(--t3); }
+.hist-q{ font-size:14px;color:var(--t1);margin-bottom:4px;font-style:italic; }
+.hist-r{ font-size:12.5px;color:var(--t2);line-height:1.5; }
+.hist-empty{ text-align:center;padding:60px 20px;color:var(--t3);font-size:14px; }
+
+/* ═══════════════════════════════════════════
+   PERMISSIONS SCREEN
+══════════════════════════════════════════════ */
+#permsScreen { padding:16px 20px; gap:10px; }
+.perm-note { font-size:13px;color:var(--t2);line-height:1.7;background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;flex-shrink:0; }
+.perm-row {
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px 16px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-shrink:0;
+}
+.perm-emoji{ font-size:22px;flex-shrink:0; }
+.perm-info{ flex:1; }
+.perm-name{ font-size:14px;font-weight:500;color:var(--t1); }
+.perm-desc{ font-size:12px;color:var(--t3);margin-top:2px;line-height:1.4; }
+.perm-status{ font-size:11px;font-weight:600;margin-top:3px; }
+.perm-status.ok{ color:var(--green); }
+.perm-status.no{ color:var(--red); }
+.perm-toggle{ width:46px;height:26px;border-radius:13px;background:var(--s3);position:relative;cursor:pointer;flex-shrink:0;transition:background .25s;border:1px solid var(--border); }
+.perm-toggle::after{ content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:white;top:2px;left:2px;transition:transform .25s;box-shadow:0 1px 4px rgba(0,0,0,.4); }
+.perm-toggle.on{ background:var(--acc);border-color:var(--acc); }
+.perm-toggle.on::after{ transform:translateX(20px); }
+
+/* ═══════════════════════════════════════════
+   SETTINGS SCREEN
+══════════════════════════════════════════════ */
+#settingsScreen { padding:16px 20px; gap:16px; }
+.settings-section{ flex-shrink:0; }
+.settings-card { background:var(--s1);border:1px solid var(--border);border-radius:16px;overflow:hidden; }
+.setting-row { display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border-bottom:.5px solid rgba(255,255,255,.04);cursor:pointer; }
+.setting-row:last-child{ border-bottom:none; }
+.setting-label{ font-size:14px;color:var(--t1); }
+.setting-val{ font-size:13px;color:var(--t3);display:flex;align-items:center;gap:6px; }
+.s-toggle{ width:46px;height:26px;border-radius:13px;background:var(--s3);position:relative;flex-shrink:0;transition:background .25s;border:1px solid var(--border); }
+.s-toggle::after{ content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:white;top:2px;left:2px;transition:transform .25s;box-shadow:0 1px 4px rgba(0,0,0,.4); }
+.s-toggle.on{ background:var(--acc);border-color:var(--acc); }
+.s-toggle.on::after{ transform:translateX(20px); }
+
+/* Voice profiles */
+.voice-list{ display:flex;flex-direction:column;gap:9px;flex-shrink:0; }
+.voice-card {
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:15px;
+  padding:14px 16px;
+  display:flex;
+  align-items:center;
+  gap:13px;
+  cursor:pointer;
+  transition:all .18s;
+}
+.voice-card:active{ transform:scale(.98); }
+.voice-card.selected{ border-color:var(--acc);background:rgba(108,99,255,.08); }
+.voice-avatar{ width:42px;height:42px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0; }
+.voice-name{ font-family:var(--fh);font-size:14px;font-weight:600;color:var(--t1); }
+.voice-trait{ font-size:12px;color:var(--t3);margin-top:2px; }
+.voice-check{ margin-left:auto;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--t3);display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .2s;flex-shrink:0; }
+.voice-card.selected .voice-check{ background:var(--acc);border-color:var(--acc);color:white; }
+
+/* Sliders */
+.slider-block{ padding:16px;background:var(--s1);border:1px solid var(--border);border-radius:16px; }
+.slider-row{ margin-bottom:18px; }
+.slider-row:last-child{ margin-bottom:0; }
+.slider-hdr{ display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px; }
+.slider-name{ font-size:13px;color:var(--t2); }
+.slider-val{ font-size:14px;font-weight:600;color:var(--acc2);font-family:var(--fh); }
+input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:4px;background:var(--s3);
+  border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:22px;height:22px;
+  border-radius:50%;background:var(--acc);cursor:pointer;
+  box-shadow:0 0 10px rgba(108,99,255,.5);
+}
+
+/* Danger btn */
+.danger-btn{ width:100%;padding:15px;border-radius:15px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);color:var(--red);font-family:var(--fb);font-size:14px;cursor:pointer;transition:all .2s; }
+.danger-btn:active{ background:rgba(248,113,113,.15); }
+
+/* ═══════════════════════════════════════════
+   INPUT BAR
+══════════════════════════════════════════════ */
+.input-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px calc(10px + var(--safe-bot));
+  background: var(--bg);
+  border-top: .5px solid var(--border);
+  flex-shrink: 0;
+}
+.text-field {
+  flex:1;
+  background:var(--s2);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:12px 18px;
+  font-size:14px;
+  font-family:var(--fb);
+  color:var(--t1);
+  outline:none;
+  transition:border-color .2s;
+  -webkit-appearance:none;
+}
+.text-field::placeholder{ color:var(--t3); }
+.text-field:focus{ border-color:rgba(108,99,255,.45); }
+.mic-fab {
+  width:50px;height:50px;border-radius:50%;
+  background:var(--acc);border:none;
+  cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:22px;
+  box-shadow:0 4px 20px rgba(108,99,255,.45);
+  flex-shrink:0;transition:all .18s;
+}
+.mic-fab:active{ transform:scale(.92); }
+.mic-fab.listening{ background:var(--red);box-shadow:0 4px 20px rgba(248,113,113,.5);animation:micPulse 1s ease-in-out infinite; }
+
+/* ═══════════════════════════════════════════
+   BOTTOM NAV
+══════════════════════════════════════════════ */
+nav {
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0 calc(6px + var(--safe-bot));
+  background: var(--bg);
+  border-top: .5px solid var(--border);
+  flex-shrink: 0;
+}
+.nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  padding: 5px 20px;
+  border-radius: 14px;
+  transition: all .18s;
+  color: var(--t3);
+  font-size: 11px;
+  font-weight: 500;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.nav-tab .ni { font-size: 22px; line-height: 1; }
+.nav-tab.active { color: var(--acc2); }
+.nav-tab:active { transform:scale(.92); }
+
+/* ═══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════ */
+#toast {
+  position:fixed;top:calc(var(--safe-top) + 60px);
+  left:50%;transform:translateX(-50%);
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:50px;padding:10px 20px;
+  font-size:13px;color:var(--t1);
+  z-index:9990;opacity:0;transition:opacity .3s;
+  pointer-events:none;white-space:nowrap;
+  box-shadow:var(--glow);
+}
+#toast.show{ opacity:1; }
+
+/* Screen headers for sub-screens */
+.screen-hdr { display:flex;align-items:center;gap:12px;padding:6px 20px 14px;flex-shrink:0; }
+.screen-hdr h2 { font-family:var(--fh);font-size:20px;font-weight:700;color:var(--t1); }
+.back-btn { width:38px;height:38px;border-radius:50%;background:var(--s2);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--t2);flex-shrink:0;transition:all .18s; }
+.back-btn:active{ transform:scale(.92);background:var(--s3); }
+
+/* ═══════════════════════════════════════════
+   KEYFRAMES
+══════════════════════════════════════════════ */
+@keyframes orbBreath {
+  0%,100%{ transform:scale(1);opacity:.6; }
+  50%{ transform:scale(1.04);opacity:1; }
+}
+@keyframes orbSpin {
+  from{ transform:rotate(0deg); }
+  to{ transform:rotate(360deg); }
+}
+@keyframes blink {
+  0%,100%{ opacity:1; }
+  50%{ opacity:.3; }
+}
+@keyframes waveDance {
+  from{ transform:scaleY(.3); }
+  to{ transform:scaleY(1); }
+}
+@keyframes thinkDot {
+  0%,80%,100%{ transform:scale(.5);opacity:.3; }
+  40%{ transform:scale(1);opacity:1; }
+}
+@keyframes micPulse {
+  0%,100%{ box-shadow:0 4px 20px rgba(248,113,113,.4); }
+  50%{ box-shadow:0 4px 40px rgba(248,113,113,.8); }
+}
+@keyframes slideUp {
+  from{ transform:translateY(30px);opacity:0; }
+  to{ transform:translateY(0);opacity:1; }
+}
+</style>
+</head>
+<body>
+
+<!-- INSTALL BANNER -->
+<div id="installBanner">
+  <span class="install-icon">📲</span>
+  <div class="install-text">
+    <strong>Install Nova</strong>
+    <span>Add to home screen for app-like experience</span>
+  </div>
+  <button class="install-btn" id="installBtn">Install</button>
+  <span class="install-close" id="closeBanner">✕</span>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- PERMISSION SHEET -->
+<div id="permOverlay">
+  <div class="perm-sheet">
+    <span class="perm-sheet-icon" id="psIcon">🎤</span>
+    <div class="perm-sheet-title" id="psTitle">Allow Microphone?</div>
+    <div class="perm-sheet-desc" id="psDesc">Nova needs your microphone to hear voice commands.</div>
+    <div class="perm-sheet-btns">
+      <button class="btn-deny"  id="psDeny">Don't Allow</button>
+      <button class="btn-allow" id="psAllow">Allow Access</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">✦ Nova</div>
+    <div class="header-btns">
+      <div class="icon-btn" id="btnPerms" title="Permissions">🔐</div>
+      <div class="icon-btn" id="btnHist"  title="History">🕐</div>
+      <div class="icon-btn" id="btnSetts" title="Settings">⚙️</div>
+    </div>
+  </header>
+
+  <!-- ── HOME ─────────────────────────────── -->
+  <div id="homeScreen" class="screen active">
+
+    <!-- Orb -->
+    <div class="orb-wrap">
+      <div class="orb-stage" id="orbStage">
+        <div class="orb-glow"></div>
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="ring ring-3"></div>
+        <div class="orb-core" id="orbCore">✦</div>
+      </div>
+      <div class="orb-label" id="orbLabel">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Ready — tap orb to speak</span>
+      </div>
+    </div>
+
+    <!-- Wave bars -->
+    <div class="wave-bars" id="waveBars">
+      <div class="wave-bar"></div><div class="wave-bar"></div>
+      <div class="wave-bar"></div><div class="wave-bar"></div>
+      <div class="wave-bar"></div><div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+    </div>
+
+    <!-- AI Bubble -->
+    <div class="bubble" id="bubble">
+      Hey! I'm Nova. Tap the orb or mic button to speak, or type a command below. I can open apps, play music, navigate, set timers, and more! 🌟
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="sec-label">Quick Actions</div>
+    <div class="quick-grid">
+      <div class="q-card" data-cmd="Play music on Spotify">
+        <div class="q-icon purple">🎵</div>
+        <div><div class="q-title">Play Music</div><div class="q-sub">Spotify, YouTube</div></div>
+      </div>
+      <div class="q-card" data-cmd="Open WhatsApp">
+        <div class="q-icon teal">💬</div>
+        <div><div class="q-title">Message</div><div class="q-sub">WhatsApp, Telegram</div></div>
+      </div>
+      <div class="q-card" data-cmd="Open Google Maps">
+        <div class="q-icon amber">🗺️</div>
+        <div><div class="q-title">Navigate</div><div class="q-sub">Maps, directions</div></div>
+      </div>
+      <div class="q-card" data-cmd="Set a 5 minute timer">
+        <div class="q-icon rose">⏱️</div>
+        <div><div class="q-title">Set Timer</div><div class="q-sub">Alarm, reminder</div></div>
+      </div>
+    </div>
+
+    <!-- App Launcher -->
+    <div class="sec-label">Launch Apps</div>
+    <div class="app-grid" id="appGrid"></div>
+
+  </div><!-- /homeScreen -->
+
+  <!-- ── HISTORY ───────────────────────────── -->
+  <div id="historyScreen" class="screen">
+    <div class="screen-hdr">
+      <div class="back-btn" data-back>←</div>
+      <h2>History</h2>
+    </div>
+    <div id="histList"></div>
+  </div>
+
+  <!-- ── PERMISSIONS ──────────────────────── -->
+  <div id="permsScreen" class="screen">
+    <div class="screen-hdr">
+      <div class="back-btn" data-back>←</div>
+      <h2>Permissions</h2>
+    </div>
+    <div class="perm-note">🔒 Nova only accesses what you allow. It <strong>never</strong> reads personal messages, chats, or private files.</div>
+    <div id="permList"></div>
+  </div>
+
+  <!-- ── SETTINGS ──────────────────────────── -->
+  <div id="settingsScreen" class="screen">
+    <div class="screen-hdr">
+      <div class="back-btn" data-back>←</div>
+      <h2>Settings</h2>
+    </div>
+
+    <div class="settings-section">
+      <div class="sec-label" style="margin-bottom:10px">Voice Personality</div>
+      <div class="voice-list" id="voiceList"></div>
+    </div>
+
+    <div class="settings-section">
+      <div class="sec-label" style="margin-bottom:10px">Voice Tuning</div>
+      <div class="slider-block">
+        <div class="slider-row">
+          <div class="slider-hdr"><span class="slider-name">Speed</span><span class="slider-val" id="speedLbl">1.0×</span></div>
+          <input type="range" id="speedRange" min="50" max="200" value="100">
+        </div>
+        <div class="slider-row">
+          <div class="slider-hdr"><span class="slider-name">Pitch</span><span class="slider-val" id="pitchLbl">+0</span></div>
+          <input type="range" id="pitchRange" min="-10" max="10" value="0">
+        </div>
+        <div class="slider-row">
+          <div class="slider-hdr"><span class="slider-name">Volume</span><span class="slider-val" id="volLbl">80%</span></div>
+          <input type="range" id="volRange" min="0" max="100" value="80">
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="sec-label" style="margin-bottom:10px">General</div>
+      <div class="settings-card">
+        <div class="setting-row">
+          <span class="setting-label">Learn from conversations</span>
+          <div class="s-toggle on" id="toggleLearn"></div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Speak responses aloud</span>
+          <div class="s-toggle on" id="toggleSpeak"></div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Wake word (Hey Nova)</span>
+          <div class="s-toggle on" id="toggleWake"></div>
+        </div>
+        <div class="setting-row" style="cursor:pointer" id="testVoiceRow">
+          <span class="setting-label">Test voice</span>
+          <span class="setting-val">▶ Play →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <button class="danger-btn" id="clearMemBtn">🗑 Clear Conversation Memory</button>
+    </div>
+  </div><!-- /settingsScreen -->
+
+  <!-- INPUT BAR (only on home) -->
+  <div class="input-bar" id="inputBar">
+    <input type="text" class="text-field" id="textField" placeholder="Type a command..." autocomplete="off" autocorrect="off" spellcheck="false">
+    <button class="mic-fab" id="micFab">🎤</button>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav id="bottomNav">
+    <div class="nav-tab active" data-screen="homeScreen">
+      <span class="ni">✦</span><span>Nova</span>
+    </div>
+    <div class="nav-tab" data-screen="permsScreen">
+      <span class="ni">🔐</span><span>Perms</span>
+    </div>
+    <div class="nav-tab" data-screen="historyScreen">
+      <span class="ni">🕐</span><span>History</span>
+    </div>
+    <div class="nav-tab" data-screen="settingsScreen">
+      <span class="ni">⚙️</span><span>Settings</span>
+    </div>
+  </nav>
+
+</div><!-- /app -->
+
+<script>
+'use strict';
+/* ═══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════ */
+const S = {
+  voice: load('voice','nova'),
+  speed: +load('speed',100),
+  pitch: +load('pitch',0),
+  vol:   +load('vol',80),
+  learn: loadBool('learn',true),
+  speak: loadBool('speak',true),
+  wake:  loadBool('wake',true),
+  history: loadJSON('history',[]),
+  perms: loadJSON('perms',{mic:false,camera:false,storage:false,notif:false}),
+  listening: false,
+  thinking: false,
+  currentScreen: 'homeScreen'
+};
+
+/* ═══════════════════════════════════════════
+   APPS DATA
+══════════════════════════════════════════════ */
+const APPS = [
+  {name:'Spotify',   icon:'🎵', pkg:'com.spotify.music',                 url:'https://open.spotify.com'},
+  {name:'YouTube',   icon:'▶️', pkg:'com.google.android.youtube',        url:'https://m.youtube.com'},
+  {name:'WhatsApp',  icon:'💬', pkg:'com.whatsapp',                      url:'https://wa.me'},
+  {name:'Maps',      icon:'🗺️', pkg:'com.google.android.apps.maps',      url:'https://maps.google.com'},
+  {name:'Chrome',    icon:'🌐', pkg:'com.android.chrome',                url:'https://google.com'},
+  {name:'Gmail',     icon:'📧', pkg:'com.google.android.gm',             url:'https://mail.google.com'},
+  {name:'Instagram', icon:'📸', pkg:'com.instagram.android',             url:'https://www.instagram.com'},
+  {name:'Netflix',   icon:'🎬', pkg:'com.netflix.mediaclient',           url:'https://www.netflix.com'},
+  {name:'Twitter',   icon:'🐦', pkg:'com.twitter.android',               url:'https://mobile.twitter.com'},
+  {name:'Amazon',    icon:'📦', pkg:'com.amazon.mShop.android.shopping', url:'https://www.amazon.in'},
+  {name:'Telegram',  icon:'✈️', pkg:'org.telegram.messenger',            url:'https://web.telegram.org'},
+  {name:'Calculator',icon:'🧮', pkg:'',                                  url:''},
+];
+
+/* ═══════════════════════════════════════════
+   VOICE PROFILES
+══════════════════════════════════════════════ */
+const VOICES = [
+  {id:'nova', name:'Nova',  trait:'Warm & friendly', emoji:'🌟', pitch:1.1,  rate:1.0 },
+  {id:'aria', name:'Aria',  trait:'Professional',    emoji:'💼', pitch:1.0,  rate:0.95},
+  {id:'max',  name:'Max',   trait:'Deep & calm',     emoji:'🌊', pitch:0.8,  rate:0.9 },
+  {id:'luna', name:'Luna',  trait:'Playful & bright',emoji:'🌙', pitch:1.3,  rate:1.1 },
+];
+
+/* ═══════════════════════════════════════════
+   PERMISSIONS CONFIG
+══════════════════════════════════════════════ */
+const PERM_DEFS = [
+  {id:'mic',     emoji:'🎤', name:'Microphone',   desc:'Required for voice commands and hands-free control',    api: () => requestMic()},
+  {id:'camera',  emoji:'📸', name:'Camera',       desc:'For photo capture commands ("take a photo")',            api: () => requestCamera()},
+  {id:'storage', emoji:'💾', name:'Storage',      desc:'Save preferences, history and downloaded content',      api: () => requestStorage()},
+  {id:'notif',   emoji:'🔔', name:'Notifications',desc:'Timer alerts and reminders from Nova',                  api: () => requestNotif()},
+];
+
+/* ═══════════════════════════════════════════
+   INTENT ENGINE
+══════════════════════════════════════════════ */
+function parseIntent(text) {
+  const t = text.toLowerCase();
+  const has = (...w) => w.some(k => t.includes(k));
+
+  if (has('play','music','song','spotify','podcast'))
+    return {type:'music', app: has('youtube') ? APPS[1] : APPS[0]};
+  if (has('youtube','watch video','open youtube'))
+    return {type:'app', app: APPS[1]};
+  if (has('whatsapp','message','chat','text'))
+    return {type:'app', app: APPS[2]};
+  if (has('navigate','maps','directions','take me to','route','go to'))
+    return {type:'navigate', query: extractAfter(t,['navigate to','take me to','directions to','route to','go to','maps'])};
+  if (has('timer','countdown','set timer'))
+    return {type:'timer', mins: extractNum(t) || 5};
+  if (has('alarm','wake me','set alarm'))
+    return {type:'alarm'};
+  if (has('search','google','look up','find','what is','who is'))
+    return {type:'search', query: extractAfter(t,['search for','search','google','look up','find','what is','who is']) || text};
+  if (has('call','dial','phone','ring'))
+    return {type:'call', contact: extractAfter(t,['call','dial','ring','phone'])};
+  if (has('camera','photo','selfie','picture'))
+    return {type:'photo'};
+  if (has('instagram'))   return {type:'app', app: APPS[6]};
+  if (has('netflix'))     return {type:'app', app: APPS[7]};
+  if (has('twitter','x')) return {type:'app', app: APPS[8]};
+  if (has('amazon'))      return {type:'app', app: APPS[9]};
+  if (has('telegram'))    return {type:'app', app: APPS[10]};
+  if (has('gmail','email','mail'))  return {type:'app', app: APPS[5]};
+  if (has('chrome','browser'))     return {type:'app', app: APPS[4]};
+
+  // Try matching any known app by name
+  for (const app of APPS) {
+    if (app.name && t.includes(app.name.toLowerCase()))
+      return {type:'app', app};
+  }
+  return {type:'unknown'};
+}
+
+function executeIntent(intent, rawText) {
+  switch (intent.type) {
+    case 'music':
+      openURL(intent.app.url);
+      return `Opening ${intent.app.name} for music. Enjoy! 🎵`;
+
+    case 'app':
+      if (intent.app.url) openURL(intent.app.url);
+      else if (intent.app.name === 'Calculator') openCalculator();
+      return `Opening ${intent.app.name} for you. ✦`;
+
+    case 'navigate': {
+      const dest = intent.query?.trim() || '';
+      const url = dest
+        ? `https://maps.google.com/?q=${encodeURIComponent(dest)}`
+        : 'https://maps.google.com';
+      openURL(url);
+      return dest ? `Navigating to ${dest}. Opening Maps. 🗺️` : 'Opening Google Maps. Where to?';
+    }
+
+    case 'timer': {
+      const s = intent.mins * 60;
+      // Try clock app intent via URL (Android)
+      openURL(`intent://timer#Intent;scheme=android-app;end`);
+      startInPageTimer(intent.mins);
+      return `Timer set for ${intent.mins} minute${intent.mins!==1?'s':''}! I'll alert you. ⏱️`;
+    }
+
+    case 'alarm':
+      openURL('intent://alarm#Intent;scheme=android-app;end');
+      return 'Opening alarm. Set your wake-up time. ⏰';
+
+    case 'search': {
+      const q = intent.query || rawText;
+      openURL(`https://www.google.com/search?q=${encodeURIComponent(q)}`);
+      return `Searching for "${q}" on Google. 🔍`;
+    }
+
+    case 'call': {
+      const c = intent.contact?.trim() || '';
+      if (c.match(/[\d\+\-\s]+/)) {
+        window.location.href = `tel:${c.replace(/\s/g,'')}`;
+      } else {
+        window.location.href = `tel:`;
+      }
+      return c ? `Calling ${c}... 📞` : 'Opening dialer. 📞';
+    }
+
+    case 'photo':
+      openURL('intent://camera#Intent;scheme=android-app;end');
+      return 'Opening camera. Say cheese! 📸';
+
+    default:
+      return smartFallback(rawText);
+  }
+}
+
+function smartFallback(text) {
+  // Context-aware response using last history
+  const last = S.history[0];
+  if (last) {
+    if (last.intent==='music' && /more|next|another/.test(text.toLowerCase()))
+      return 'Queuing more tracks for you! 🎵';
+    if (last.intent==='navigate' && /yes|ok|sure/.test(text.toLowerCase()))
+      return 'Great! Opening Maps now. 🗺️';
+  }
+  const fallbacks = [
+    `I'm not sure about that yet. Try: "Play Spotify", "Open YouTube", "Set a 10 minute timer", or "Navigate home".`,
+    `Hmm, I didn't catch that. Try saying: "Open WhatsApp", "Search for weather in Delhi", or "Call Mum".`,
+    `Still learning! Try: "Play music", "Take a photo", or "Navigate to Connaught Place". ✦`,
+  ];
+  return fallbacks[Math.floor(Math.random()*fallbacks.length)];
+}
+
+/* ═══════════════════════════════════════════
+   IN-PAGE TIMER
+══════════════════════════════════════════════ */
+let activeTimer = null;
+function startInPageTimer(mins) {
+  if (activeTimer) clearTimeout(activeTimer);
+  activeTimer = setTimeout(() => {
+    showToast(`⏱️ Timer done! ${mins} minute${mins!==1?'s':''} up!`);
+    speak(`Timer done! Your ${mins} minute timer has finished.`);
+    try { new Notification('Nova Timer', { body: `${mins} minute timer is up!`, icon:'./icon-192.png' }); } catch(e){}
+  }, mins * 60000);
+}
+
+/* ═══════════════════════════════════════════
+   COMMAND PROCESSOR
+══════════════════════════════════════════════ */
+function processCommand(text) {
+  if (!text.trim()) return;
+  setThinking(true);
+  setBubble('<div class="thinking-dots"><span></span><span></span><span></span></div>');
+
+  setTimeout(() => {
+    const intent = parseIntent(text);
+    const response = executeIntent(intent, text);
+
+    setThinking(false);
+    setBubble(response);
+    if (S.speak) speak(response.replace(/[✦🎵🗺️⏱️⏰📞📸🔍✓]/g,''));
+
+    // Save history
+    const entry = {
+      query: text,
+      response,
+      intent: intent.type,
+      time: Date.now()
+    };
+    if (S.learn) {
+      S.history.unshift(entry);
+      if (S.history.length > 50) S.history.pop();
+      save('history', S.history);
+    }
+  }, 900 + Math.random()*400);
+}
+
+/* ═══════════════════════════════════════════
+   SPEECH RECOGNITION
+══════════════════════════════════════════════ */
+let recognition = null;
+let recognitionActive = false;
+
+function startListening() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('🎤 Speech not supported. Type your command instead.');
+    return;
+  }
+  if (!S.perms.mic) {
+    requestMicPermission();
+    return;
+  }
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'en-IN';
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 3;
+  recognition.continuous = false;
+
+  recognition.onstart = () => {
+    recognitionActive = true;
+    setListening(true);
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    if (interim) setBubble(`"${interim}"`);
+    if (final) {
+      setListening(false);
+      processCommand(final.trim());
+    }
+  };
+
+  recognition.onerror = (e) => {
+    setListening(false);
+    const msgs = {
+      'not-allowed': '🔒 Microphone access denied. Enable it in Permissions.',
+      'no-speech': 'No speech detected. Tap to try again.',
+      'network': 'Network error. Check your connection.',
+    };
+    setBubble(msgs[e.error] || `Could not hear you (${e.error}). Try again.`);
+  };
+
+  recognition.onend = () => {
+    recognitionActive = false;
+    setListening(false);
+  };
+
+  try { recognition.start(); } catch(e) { setListening(false); }
+}
+
+function stopListening() {
+  try { recognition?.stop(); } catch(e){}
+  setListening(false);
+}
+
+/* ═══════════════════════════════════════════
+   TTS
+══════════════════════════════════════════════ */
+function speak(text) {
+  if (!S.speak || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  const vp = VOICES.find(v => v.id === S.voice) || VOICES[0];
+  utt.lang = 'en-IN';
+  utt.pitch = vp.pitch + (S.pitch / 20);
+  utt.rate  = vp.rate  * (S.speed / 100);
+  utt.volume = S.vol / 100;
+  window.speechSynthesis.speak(utt);
+}
+
+/* ═══════════════════════════════════════════
+   PERMISSION REQUESTS (real browser APIs)
+══════════════════════════════════════════════ */
+function requestMicPermission() {
+  navigator.mediaDevices?.getUserMedia({ audio: true })
+    .then(stream => {
+      stream.getTracks().forEach(t => t.stop());
+      S.perms.mic = true;
+      save('perms', S.perms);
+      renderPerms();
+      showToast('✅ Microphone access granted');
+      startListening();
+    })
+    .catch(() => {
+      S.perms.mic = false;
+      save('perms', S.perms);
+      renderPerms();
+      showToast('🔒 Microphone denied. Enable in browser settings.');
+    });
+}
+
+async function requestMic() {
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+    s.getTracks().forEach(t => t.stop());
+    S.perms.mic = true;
+    save('perms', S.perms);
+    showToast('✅ Microphone granted');
+  } catch { S.perms.mic = false; save('perms', S.perms); showToast('❌ Microphone denied'); }
+  renderPerms();
+}
+
+async function requestCamera() {
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ video: true });
+    s.getTracks().forEach(t => t.stop());
+    S.perms.camera = true;
+    save('perms', S.perms);
+    showToast('✅ Camera granted');
+  } catch { S.perms.camera = false; save('perms', S.perms); showToast('❌ Camera denied'); }
+  renderPerms();
+}
+
+async function requestStorage() {
+  // Storage in browser = always available in localStorage context
+  S.perms.storage = true;
+  save('perms', S.perms);
+  showToast('✅ Storage access granted');
+  renderPerms();
+}
+
+async function requestNotif() {
+  if (!('Notification' in window)) { showToast('⚠️ Notifications not supported'); return; }
+  const perm = await Notification.requestPermission();
+  S.perms.notif = perm === 'granted';
+  save('perms', S.perms);
+  showToast(S.perms.notif ? '✅ Notifications granted' : '❌ Notifications denied');
+  renderPerms();
+}
+
+/* ═══════════════════════════════════════════
+   RENDERERS
+══════════════════════════════════════════════ */
+function renderApps() {
+  const grid = document.getElementById('appGrid');
+  grid.innerHTML = APPS.map(app => `
+    <div class="app-cell" data-app='${JSON.stringify(app)}'>
+      <div class="app-cell-icon">
+        ${app.icon}
+        <div class="app-cell-badge">✓</div>
+      </div>
+      <div class="app-cell-name">${app.name}</div>
+    </div>
+  `).join('');
+
+  grid.querySelectorAll('.app-cell').forEach(el => {
+    el.addEventListener('click', () => {
+      const app = JSON.parse(el.dataset.app);
+      showAppDialog(app);
+    });
+  });
+}
+
+function showAppDialog(app) {
+  const overlay = document.getElementById('permOverlay');
+  document.getElementById('psIcon').textContent = app.icon;
+  document.getElementById('psTitle').textContent = `Open ${app.name} with Nova?`;
+  document.getElementById('psDesc').textContent =
+    `Nova will launch ${app.name} on your behalf.\n\n🔒 Privacy guarantee: Nova will NOT read your messages, files, or personal content in this app. It only opens the app.`;
+
+  overlay.classList.add('show');
+  document.getElementById('psAllow').onclick = () => {
+    overlay.classList.remove('show');
+    processCommand(`Open ${app.name}`);
+  };
+  document.getElementById('psDeny').onclick = () => {
+    overlay.classList.remove('show');
+    showToast('Permission denied');
+  };
+}
+
+function renderVoices() {
+  const list = document.getElementById('voiceList');
+  list.innerHTML = VOICES.map(v => `
+    <div class="voice-card ${v.id===S.voice?'selected':''}" data-vid="${v.id}">
+      <div class="voice-avatar">${v.emoji}</div>
+      <div>
+        <div class="voice-name">${v.name}</div>
+        <div class="voice-trait">${v.trait}</div>
+      </div>
+      <div class="voice-check">${v.id===S.voice?'✓':''}</div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.voice-card').forEach(el => {
+    el.addEventListener('click', () => {
+      S.voice = el.dataset.vid;
+      save('voice', S.voice);
+      renderVoices();
+      const vp = VOICES.find(v=>v.id===S.voice);
+      speak(`Hi! I'm ${vp.name}. ${vp.trait} voice selected.`);
+      showToast(`🎙️ Voice set to ${vp.name}`);
+    });
+  });
+}
+
+function renderPerms() {
+  const list = document.getElementById('permList');
+  list.innerHTML = PERM_DEFS.map(p => `
+    <div class="perm-row">
+      <span class="perm-emoji">${p.emoji}</span>
+      <div class="perm-info">
+        <div class="perm-name">${p.name}</div>
+        <div class="perm-desc">${p.desc}</div>
+        <div class="perm-status ${S.perms[p.id]?'ok':'no'}">${S.perms[p.id]?'✓ Granted':'✗ Not allowed'}</div>
+      </div>
+      <div class="perm-toggle ${S.perms[p.id]?'on':''}" data-pid="${p.id}"></div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.perm-toggle').forEach(el => {
+    el.addEventListener('click', () => {
+      const pid = el.dataset.pid;
+      const def = PERM_DEFS.find(p=>p.id===pid);
+      if (!S.perms[pid]) {
+        def.api();
+      } else {
+        S.perms[pid] = false;
+        save('perms', S.perms);
+        renderPerms();
+        showToast(`🔒 ${def.name} revoked`);
+      }
+    });
+  });
+}
+
+function renderHistory() {
+  const list = document.getElementById('histList');
+  if (S.history.length === 0) {
+    list.innerHTML = '<div class="hist-empty">No history yet.<br>Start talking to Nova!</div>';
+    return;
+  }
+  list.innerHTML = S.history.map(h => `
+    <div class="hist-card">
+      <div class="hist-top">
+        <span class="hist-intent">${h.intent||'command'}</span>
+        <span class="hist-time">${timeAgo(h.time)}</span>
+      </div>
+      <div class="hist-q">"${h.query}"</div>
+      <div class="hist-r">${h.response.replace(/<[^>]+>/g,'')}</div>
+    </div>
+  `).join('');
+}
+
+/* ═══════════════════════════════════════════
+   SCREEN ROUTER
+══════════════════════════════════════════════ */
+function goTo(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.screen === screenId);
+  });
+
+  const isHome = screenId === 'homeScreen';
+  document.getElementById('inputBar').style.display = isHome ? 'flex' : 'none';
+
+  S.currentScreen = screenId;
+
+  if (screenId === 'historyScreen') renderHistory();
+  if (screenId === 'permsScreen') renderPerms();
+  if (screenId === 'settingsScreen') renderVoices();
+}
+
+/* ═══════════════════════════════════════════
+   UI STATE HELPERS
+══════════════════════════════════════════════ */
+function setListening(on) {
+  S.listening = on;
+  const orb = document.getElementById('orbStage');
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  const wav = document.getElementById('waveBars');
+  const mic = document.getElementById('micFab');
+
+  orb.classList.toggle('listening', on);
+  dot.className = 'status-dot' + (on ? ' red' : '');
+  txt.textContent = on ? 'Listening...' : 'Ready — tap orb to speak';
+  wav.classList.toggle('active', on);
+  mic.classList.toggle('listening', on);
+  mic.textContent = on ? '⏹' : '🎤';
+}
+
+function setThinking(on) {
+  S.thinking = on;
+  const orb = document.getElementById('orbStage');
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  orb.classList.toggle('thinking', on);
+  dot.className = 'status-dot' + (on ? ' amber' : '');
+  txt.textContent = on ? 'Thinking...' : 'Ready — tap orb to speak';
+}
+
+function setBubble(html) {
+  document.getElementById('bubble').innerHTML = html;
+}
+
+function showToast(msg, duration=2400) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+/* ═══════════════════════════════════════════
+   APP OPENER
+══════════════════════════════════════════════ */
+function openURL(url) {
+  if (!url) return;
+  // Try Android intent first, fall back to URL
+  setTimeout(() => { window.open(url, '_blank'); }, 100);
+}
+
+function openCalculator() {
+  // In-app calculator prompt via browser
+  const result = prompt('Calculator: Enter expression (e.g. 12 * 8)');
+  if (result !== null) {
+    try {
+      // Safe eval alternative
+      const ans = Function('"use strict"; return (' + result.replace(/[^0-9+\-*/.() ]/g,'') + ')')();
+      setBubble(`${result} = <strong>${ans}</strong> 🧮`);
+      speak(`${result} equals ${ans}`);
+    } catch { setBubble('Invalid expression. Try again.'); }
+  }
+}
+
+/* ═══════════════════════════════════════════
+   SETTINGS HANDLERS
+══════════════════════════════════════════════ */
+function setupSettings() {
+  // Sliders
+  const speedR = document.getElementById('speedRange');
+  const pitchR = document.getElementById('pitchRange');
+  const volR   = document.getElementById('volRange');
+
+  speedR.value = S.speed;
+  pitchR.value = S.pitch;
+  volR.value   = S.vol;
+
+  updateSliderLabels();
+
+  speedR.addEventListener('input', () => {
+    S.speed = +speedR.value;
+    save('speed', S.speed);
+    updateSliderLabels();
+  });
+  pitchR.addEventListener('input', () => {
+    S.pitch = +pitchR.value;
+    save('pitch', S.pitch);
+    updateSliderLabels();
+  });
+  volR.addEventListener('input', () => {
+    S.vol = +volR.value;
+    save('vol', S.vol);
+    updateSliderLabels();
+  });
+
+  // Toggles
+  setupToggle('toggleLearn', 'learn');
+  setupToggle('toggleSpeak', 'speak');
+  setupToggle('toggleWake',  'wake');
+
+  document.getElementById('testVoiceRow').addEventListener('click', () => {
+    const vp = VOICES.find(v=>v.id===S.voice)||VOICES[0];
+    speak(`Hey! I'm ${vp.name}. I'm your Nova assistant. How can I help you today?`);
+  });
+
+  document.getElementById('clearMemBtn').addEventListener('click', () => {
+    if (confirm('Clear all conversation history?')) {
+      S.history = [];
+      save('history', []);
+      showToast('🗑️ Memory cleared');
+    }
+  });
+}
+
+function setupToggle(elId, key) {
+  const el = document.getElementById(elId);
+  el.addEventListener('click', () => {
+    S[key] = !S[key];
+    el.classList.toggle('on', S[key]);
+    saveBool(key, S[key]);
+    showToast(S[key] ? `✅ ${key} enabled` : `❌ ${key} disabled`);
+  });
+  el.classList.toggle('on', S[key]);
+}
+
+function updateSliderLabels() {
+  document.getElementById('speedLbl').textContent = (S.speed/100).toFixed(1)+'×';
+  document.getElementById('pitchLbl').textContent = (S.pitch>=0?'+':'')+S.pitch;
+  document.getElementById('volLbl').textContent   = S.vol+'%';
+}
+
+/* ═══════════════════════════════════════════
+   PWA INSTALL
+══════════════════════════════════════════════ */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').classList.add('show');
+});
+
+document.getElementById('installBtn').addEventListener('click', () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(r => {
+      if (r.outcome==='accepted') showToast('🎉 Nova installed! Check your home screen.');
+      deferredPrompt = null;
+      document.getElementById('installBanner').classList.remove('show');
+    });
+  }
+});
+document.getElementById('closeBanner').addEventListener('click', () => {
+  document.getElementById('installBanner').classList.remove('show');
+});
+
+/* ═══════════════════════════════════════════
+   SERVICE WORKER
+══════════════════════════════════════════════ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+
+/* ═══════════════════════════════════════════
+   EVENT BINDINGS
+══════════════════════════════════════════════ */
+function bindEvents() {
+  // Orb + mic
+  document.getElementById('orbStage').addEventListener('click', () => {
+    if (S.listening) stopListening();
+    else startListening();
+  });
+  document.getElementById('micFab').addEventListener('click', () => {
+    if (S.listening) stopListening();
+    else startListening();
+  });
+
+  // Text input
+  const tf = document.getElementById('textField');
+  tf.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const txt = tf.value.trim();
+      tf.value = '';
+      if (txt) processCommand(txt);
+    }
+  });
+
+  // Quick cards
+  document.querySelectorAll('.q-card[data-cmd]').forEach(el => {
+    el.addEventListener('click', () => processCommand(el.dataset.cmd));
+  });
+
+  // Nav tabs
+  document.querySelectorAll('.nav-tab[data-screen]').forEach(el => {
+    el.addEventListener('click', () => goTo(el.dataset.screen));
+  });
+
+  // Header buttons
+  document.getElementById('btnPerms').addEventListener('click', () => goTo('permsScreen'));
+  document.getElementById('btnHist').addEventListener('click', () => goTo('historyScreen'));
+  document.getElementById('btnSetts').addEventListener('click', () => goTo('settingsScreen'));
+
+  // Back buttons
+  document.querySelectorAll('[data-back]').forEach(el => {
+    el.addEventListener('click', () => goTo('homeScreen'));
+  });
+
+  // Perm overlay close on backdrop
+  document.getElementById('permOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('permOverlay'))
+      document.getElementById('permOverlay').classList.remove('show');
+  });
+}
+
+/* ═══════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════ */
+function load(k, def)      { try { return localStorage.getItem(k) ?? def; } catch{ return def; } }
+function loadBool(k, def)  { try { const v = localStorage.getItem(k); return v===null ? def : v==='true'; } catch { return def; } }
+function loadJSON(k, def)  { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } }
+function save(k, v)        { try { localStorage.setItem(k, typeof v==='object'?JSON.stringify(v):v); } catch{} }
+function saveBool(k, v)    { try { localStorage.setItem(k, String(v)); } catch{} }
+
+function extractNum(text) {
+  const words = {one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,fifteen:15,twenty:20,thirty:30,sixty:60};
+  for (const [w,n] of Object.entries(words)) if (text.includes(w)) return n;
+  return parseInt(text.match(/\d+/)?.[0]);
+}
+
+function extractAfter(text, keywords) {
+  for (const kw of keywords) {
+    const i = text.indexOf(kw);
+    if (i>=0) { const after = text.slice(i+kw.length).trim(); if (after) return after; }
+  }
+  return null;
+}
+
+function timeAgo(ts) {
+  const s = Math.round((Date.now()-ts)/1000);
+  if (s<60) return 'just now';
+  if (s<3600) return Math.floor(s/60)+'m ago';
+  if (s<86400) return Math.floor(s/3600)+'h ago';
+  return Math.floor(s/86400)+'d ago';
+}
+
+/* ═══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
+function init() {
+  renderApps();
+  renderVoices();
+  renderPerms();
+  setupSettings();
+  bindEvents();
+  goTo('homeScreen');
+
+  // Auto-request mic silently after 2s
+  setTimeout(() => {
+    if (!S.perms.mic) {
+      navigator.mediaDevices?.getUserMedia({ audio: true })
+        .then(s => { s.getTracks().forEach(t=>t.stop()); S.perms.mic=true; save('perms',S.perms); renderPerms(); })
+        .catch(()=>{});
+    }
+  }, 2000);
+
+  // Check for ?action=listen (shortcut)
+  if (new URLSearchParams(location.search).get('action')==='listen') {
+    setTimeout(startListening, 1000);
+  }
+
+  // Greeting
+  setTimeout(() => {
+    const hour = new Date().getHours();
+    const greeting = hour<12 ? 'Good morning' : hour<18 ? 'Good afternoon' : 'Good evening';
+    if (S.speak) speak(`${greeting}! I'm Nova, ready to help.`);
+  }, 1500);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
